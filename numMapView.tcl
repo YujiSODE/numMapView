@@ -64,6 +64,8 @@ namespace eval ::numMV {
 	#map height is estimated height from map and its width
 	variable WIDTH 10;
 	variable HEIGHT 10;
+	#map info
+	variable INFO {NO DATA};
 	#
 	#map resolution
 	variable RES 10;
@@ -92,10 +94,10 @@ namespace eval ::numMV {
 	proc ::numMV::load {map width} {
 		# - $map: a numerical list
 		# - $width: a positive integer value that is set as width of map
-		variable ::numMV::MAP;variable ::numMV::WIDTH;variable ::numMV::HEIGHT 10;
+		variable ::numMV::MAP;variable ::numMV::WIDTH;variable ::numMV::HEIGHT;variable ::numMV::INFO;
 		#$width is not less than 2
 		set width [expr {$width<2?2:int($width)}];
-		set ::numMV::WIDTH [expr {$width}];
+		set ::numMV::WIDTH $width;
 		#
 		set ::numMV::MAP $map;
 		#
@@ -106,7 +108,7 @@ namespace eval ::numMV {
 		set ::numMV::HEIGHT [expr {$lMod>0?int(($L+$width-$lMod)/$width):int($L/$width)}];
 		#
 		unset lMod;
-		return [list length $L width $::numMV::WIDTH height $::numMV::HEIGHT xMin 0 xMax [expr {$::numMV::WIDTH-1}] yMin 0 yMax [expr {$::numMV::HEIGHT-1}]];
+		return [set ::numMV::INFO [list length $L width $::numMV::WIDTH height $::numMV::HEIGHT xMin 0 xMax [expr {$::numMV::WIDTH-1}] yMin 0 yMax [expr {$::numMV::HEIGHT-1}]]];
 	};
 	#
 	#procedure to set resolution
@@ -160,9 +162,7 @@ namespace eval ::numMV {
 		# - $void: an optional value to replace voids in map, which has a default value of 0
 		variable ::numMV::MAP;variable ::numMV::WIDTH;
 		#when map is undefined
-		if {![llength $::numMV::MAP]} {
-			error "map data is undefined";
-		};
+		if {![llength $::numMV::MAP]} {error "map data is undefined";};
 		#
 		set x [expr {int($x)}];
 		set y [expr {int($y)}];
@@ -175,7 +175,6 @@ namespace eval ::numMV {
 	#procedure that returns a modified value of arc tangent in radians
 	#returned value is in [0,pi]
 	proc ::numMV::atan_0pi {x0 y0 x1 y1 {void 0} {z0 {}}} {
-	#proc ::numMV::atan_0pi {x0 y0 x1 y1 {void 0}} {} 
 		# - $x0, $y0, $x1 and $y1: integer coordinates for different points (x0,y0) and (x1,y1)
 		# - $void: an optional value to replace voids in map, which has a default value of 0
 		# - $z0: an optional value to replace value of a point (x0,y0)
@@ -192,9 +191,7 @@ namespace eval ::numMV {
 		set dV [expr {$v1-$v0}];
 		###
 		#when $dL is 0.0
-		if {!($dL!=0)} {
-			error "the same points are given for calculation";
-		};
+		if {!($dL!=0)} {error "the same points are given for calculation";};
 		set sumList [list $::numMV::PI2 [expr {atan($dV/$dL)}]];
 		unset x0 y0 x1 y1 v0 v1 dL dV;
 		###
@@ -203,7 +200,6 @@ namespace eval ::numMV {
 	#
 	#procedure that returns an indexed elevation angle
 	#returned value is reversed index (index for "the largest value" is 0)
-	#proc ::numMV::indexedElevation {x0 y0 x1 y1 {void 0}} {}
 	proc ::numMV::indexedElevation {x0 y0 x1 y1 {void 0} {z0 {}}} {
 		# - $x0, $y0, $x1 and $y1: integer coordinates for different points (x0,y0) and (x1,y1)
 		# - $void: an optional value to replace voids in map, which has a default value of 0
@@ -283,7 +279,7 @@ namespace eval ::numMV {
 	};
 	#
 	#=======================================
-	# positions of 4 directions and 4 points
+	# 4 directions and positions of 4 points
 	#	      N
 	#	      ^
 	#	    [a+b]
@@ -294,21 +290,64 @@ namespace eval ::numMV {
 	# N:=ab, E:=bc, S:=cd and W:=da
 	#=======================================
 	#
+	#procedure that returns a list of two-dimensional area along N-S direction
+	proc ::numMV::getAreaNS {x0 y0 x1 x2 y1 y2 {void 0} {z0 {}}} {
+		# - $x0 and $y0: integer coordinates of the current points (x0,y0)
+		# - $x1 and $x2: horizontal difference (dx := $x2-$x1) which is not 0
+		# - $y1 and $y2: vertical difference (dy := $y2-$y1) which is not 0
+		# - $void: an optional value to replace voids in map, which has a default value of 0
+		# - $z0: an optional value to replace value of a point (x0,y0)
+		###
+		set 2dList {};
+		set subL {};
+		set x1 [expr {int($x1)}];
+		set x2 [expr {int($x2)}];
+		set y1 [expr {int($y1)}];
+		set y2 [expr {int($y2)}];
+		#
+		#when x2-x1 = 0 or y2-y1 = 0
+		if {!($x2-$x1!=0)} {error "x1-x2 = 0";};
+		if {!($y2-$y1!=0)} {error "y1-y2 = 0";};
+		#
+		set dx [expr {$x2-$x1>0?1:-1}];
+		set dy [expr {$y2-$y1>0?1:-1}];
+		#
+		#vertical direction
+		set i $y1;
+		#horizontal direction
+		set j $x1;
+		#
+		while {$i<$y2+1} {
+			set j $x1;
+			set subL {};
+			while {$j<$x2+1} {
+				lappend subL [::numMV::indexedElevation $x0 $y0 $j $i $void $z0];
+				incr j $dx;
+			};
+			lappend 2dList $subL;
+			incr i $dy;
+		};
+		#
+		unset subL x1 x2 y1 y2 dx dy i j;
+		return $2dList;
+	};
 	#
 	#procedure that returns northern view
-	proc ::numMV::N {x0 y0 {void 0} {z0 {}}} {
+	proc ::numMV::N {x y {void 0} {z {}}} {
+		# - $x and $y: integer coordinates
+		# - $void: an optional value to replace voids in map, which has a default value of 0
+		# - $z: an optional value to replace value of a point (x,y)
+		variable ::numMV::MAP;variable ::numMV::WIDTH;variable ::numMV::HEIGHT;
+		###
+		set x [expr {int($x)}];
+		set y [expr {int($y)}];
+		#
+		#--- direction info ---
+		set dx 1;
+		set dy -1;
+		#
+		#--- target area ---
+		#
+		###
 	};
 #
-################### test code ###############
-puts stdout "\#=== test code outputs ===";
-set map {\
-{0 5 5 5 0 9}\
-{5 5 4 2 8 9}\
-{4 4 3 1 9 8}\
-{3 8 2 9 3 9}\
-{2 6 1 3 2 0}\
-};
-puts stdout "normal outputs:";
-puts stdout [::numMV::window $map];
-puts stdout "csv-form outputs:";
-puts stdout [string map {\n ,} [::numMV::window $map]];
