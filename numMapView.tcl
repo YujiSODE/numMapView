@@ -297,7 +297,6 @@ namespace eval ::numMV {
 		# - $y1 and $y2: vertical difference (dy := $y2-$y1) which is not 0
 		# - $void: an optional value to replace voids in map, which has a default value of 0
 		# - $z0: an optional value to replace value of a point (x0,y0)
-		variable ::numMV::MAP;variable ::numMV::WIDTH;variable ::numMV::HEIGHT;
 		###
 		set 2dList {};
 		set subL {};
