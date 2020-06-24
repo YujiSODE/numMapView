@@ -23,12 +23,10 @@
 # 	- $x and $y: integer coordinates
 # 	- $void: an optional value to replace voids in map, which has a default value of 0
 #
+#--------------------------------------------------------------------
 # - `::numMV::atan_0pi x0 y0 x1 y1 ?void? ?z0?;`
 # 	procedure that returns a modified value of arc tangent in radians
 # 	returned value is in [0,pi]
-# 	- $x0, $y0, $x1 and $y1: integer coordinates for different points (x0,y0) and (x1,y1)
-# 	- $void: an optional value to replace voids in map, which has a default value of 0
-# 	- $z0: an optional value to replace value of a point (x0,y0)
 #
 # - `::numMV::indexedElevation x0 y0 x1 y1 ?void? ?z0?;`
 # 	procedure that returns an indexed elevation angle
@@ -37,10 +35,31 @@
 # 	- $void: an optional value to replace voids in map, which has a default value of 0
 # 	- $z0: an optional value to replace value of a point (x0,y0)
 #
+# 	rank format for indexed elevation
+# 	######################################
+# 	#[indexed elevation: idx1 < indx2   ]#
+# 	#[not indexed value: value1 > value2]#
+# 	######################################
+#
+#--------------------------------------------------------------------
 # - `::numMV::window 2dList;`
 # 	procedure that returns view composed of 0, 1 and newline character (Unicode U+00000A)
 # 	- $2dList: a two-dimensional numerical list that is composed of indexed elevation angles (integers not less than 0)
 #
+#--------------------------------------------------------------------
+# - `::numMV::getAreaNS x0 y0 x1 x2 y1 y2 ?void? ?z0?;`
+# 	procedure that returns a list of two-dimensional area along N-S direction
+#
+# - `::numMV::getAreaEW x0 y0 x1 x2 y1 y2 ?void? ?z0?;`
+# 	procedure that returns a list of two-dimensional area along E-W direction
+#
+# 	- $x0 and $y0: integer coordinates of the current points (x0,y0)
+# 	- $x1 and $x2: horizontal difference (dx := $x2-$x1) which is not 0
+# 	- $y1 and $y2: vertical difference (dy := $y2-$y1) which is not 0
+# 	- $void: an optional value to replace voids in map, which has a default value of 0
+# 	- $z0: an optional value to replace value of a point (x0,y0)
+#
+#--------------------------------------------------------------------
 ##===================================================================
 #
 set auto_noexec 1;
@@ -312,12 +331,14 @@ namespace eval ::numMV {
 		set dx [expr {$x2-$x1>0?1:-1}];
 		set dy [expr {$y2-$y1>0?1:-1}];
 		#
-		#vertical direction
+		#--- longitudinal direction ---
 		set i $y1;
-		#horizontal direction
+		#--- lateral direction ---
 		set j $x1;
 		#
+		#--- longitudinal direction ---
 		while {$i<$y2+1} {
+			#--- lateral direction ---
 			set j $x1;
 			set subL {};
 			while {$j<$x2+1} {
@@ -326,6 +347,50 @@ namespace eval ::numMV {
 			};
 			lappend 2dList $subL;
 			incr i $dy;
+		};
+		#
+		unset subL x1 x2 y1 y2 dx dy i j;
+		return $2dList;
+	};
+	#
+	#procedure that returns a list of two-dimensional area along E-W direction
+	proc ::numMV::getAreaEW {x0 y0 x1 x2 y1 y2 {void 0} {z0 {}}} {
+		# - $x0 and $y0: integer coordinates of the current points (x0,y0)
+		# - $x1 and $x2: horizontal difference (dx := $x2-$x1) which is not 0
+		# - $y1 and $y2: vertical difference (dy := $y2-$y1) which is not 0
+		# - $void: an optional value to replace voids in map, which has a default value of 0
+		# - $z0: an optional value to replace value of a point (x0,y0)
+		###
+		set 2dList {};
+		set subL {};
+		set x1 [expr {int($x1)}];
+		set x2 [expr {int($x2)}];
+		set y1 [expr {int($y1)}];
+		set y2 [expr {int($y2)}];
+		#
+		#when x2-x1 = 0 or y2-y1 = 0
+		if {!($x2-$x1!=0)} {error "x1-x2 = 0";};
+		if {!($y2-$y1!=0)} {error "y1-y2 = 0";};
+		#
+		set dx [expr {$x2-$x1>0?1:-1}];
+		set dy [expr {$y2-$y1>0?1:-1}];
+		#
+		#--- longitudinal direction ---
+		set i $x1;
+		#--- lateral direction ---
+		set j $y1;
+		#
+		#--- longitudinal direction ---
+		while {$i<$x2+1} {
+			#--- lateral direction ---
+			set j $y1;
+			set subL {};
+			while {$j<$y2+1} {
+				lappend subL [::numMV::indexedElevation $x0 $y0 $i $j $void $z0];
+				incr j $dy;
+			};
+			lappend 2dList $subL;
+			incr i $dx;
 		};
 		#
 		unset subL x1 x2 y1 y2 dx dy i j;
