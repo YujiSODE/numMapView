@@ -213,7 +213,7 @@ namespace eval ::numMV {
 		if {!($dL!=0)} {error "the same points are given for calculation";};
 		set sumList [list $::numMV::PI2 [expr {atan($dV/$dL)}]];
 		unset x0 y0 x1 y1 v0 v1 dL dV;
-		###
+		#
 		return [expr {lSum($sumList)}];
 	};
 	#
@@ -325,11 +325,11 @@ namespace eval ::numMV {
 		set y2 [expr {int($y2)}];
 		#
 		#when x2-x1 = 0 or y2-y1 = 0
-		if {!($x2-$x1!=0)} {error "x1-x2 = 0";};
-		if {!($y2-$y1!=0)} {error "y1-y2 = 0";};
+		if {!($x2-$x1!=0)} {error "Error: x1-x2 = 0";};
+		if {!($y2-$y1!=0)} {error "Error: y1-y2 = 0";};
 		#
-		set dx [expr {$x2-$x1>0?1:-1}];
-		set dy [expr {$y2-$y1>0?1:-1}];
+		set dx [expr {int($x2-$x1>0?1:-1)}];
+		set dy [expr {int($y2-$y1>0?1:-1)}];
 		#
 		#--- longitudinal direction ---
 		set i $y1;
@@ -337,11 +337,11 @@ namespace eval ::numMV {
 		set j $x1;
 		#
 		#--- longitudinal direction ---
-		while {$i<$y2+1} {
+		while {$dy<0?($i>$y2-1):($i<$y2+1)} {
 			#--- lateral direction ---
 			set j $x1;
 			set subL {};
-			while {$j<$x2+1} {
+			while {$dx<0?($j>$x2-1):($j<$x2+1)} {
 				lappend subL [::numMV::indexedElevation $x0 $y0 $j $i $void $z0];
 				incr j $dx;
 			};
@@ -369,11 +369,11 @@ namespace eval ::numMV {
 		set y2 [expr {int($y2)}];
 		#
 		#when x2-x1 = 0 or y2-y1 = 0
-		if {!($x2-$x1!=0)} {error "x1-x2 = 0";};
-		if {!($y2-$y1!=0)} {error "y1-y2 = 0";};
+		if {!($x2-$x1!=0)} {error "Error: x1-x2 = 0";};
+		if {!($y2-$y1!=0)} {error "Error: y1-y2 = 0";};
 		#
-		set dx [expr {$x2-$x1>0?1:-1}];
-		set dy [expr {$y2-$y1>0?1:-1}];
+		set dx [expr {int($x2-$x1>0?1:-1)}];
+		set dy [expr {int($y2-$y1>0?1:-1)}];
 		#
 		#--- longitudinal direction ---
 		set i $x1;
@@ -381,11 +381,11 @@ namespace eval ::numMV {
 		set j $y1;
 		#
 		#--- longitudinal direction ---
-		while {$i<$x2+1} {
+		while {$dx<0?($i>$x2-1):($i<$x2+1)} {
 			#--- lateral direction ---
 			set j $y1;
 			set subL {};
-			while {$j<$y2+1} {
+			while {$dy<0?($j>$y2-1):($j<$y2+1)} {
 				lappend subL [::numMV::indexedElevation $x0 $y0 $i $j $void $z0];
 				incr j $dy;
 			};
@@ -398,21 +398,23 @@ namespace eval ::numMV {
 	};
 	#
 	#procedure that returns northern view
-	proc ::numMV::N {x y {void 0} {z {}}} {
-		# - $x and $y: integer coordinates
+	proc ::numMV::N {x0 y0 {void 0} {z0 {}}} {
+		# - $x0 and $y0: integer coordinates of the current points (x0,y0)
 		# - $void: an optional value to replace voids in map, which has a default value of 0
 		# - $z: an optional value to replace value of a point (x,y)
-		variable ::numMV::MAP;variable ::numMV::WIDTH;variable ::numMV::HEIGHT;
+		variable ::numMV::WIDTH;
 		###
-		set x [expr {int($x)}];
-		set y [expr {int($y)}];
+		set x0 [expr {int($x0)}];
+		set y0 [expr {int($y0)}];
 		#
-		#--- direction info ---
-		set dx 1;
-		set dy -1;
-		#
+		#target area is defined with horizontal and vertical differences (dx := $x2-$x1 and dy := $y2-$y1) which are not 0
+		set x1 [expr {int(0)}];
+		set x2 [expr {int($::numMV::WIDTH-1)}];
+		set y1 [expr {int($y0-1)}];
+		set y2 [expr {int($y1<1?$y1-1:0)}];
 		#--- target area ---
+		set area [::numMV::getAreaNS $x0 $y0 $x1 $x2 $y1 $y2 $void $z0];
 		#
-		###
+		return [::numMV::window $area];
 	};
 #
