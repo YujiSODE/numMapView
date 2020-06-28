@@ -60,6 +60,16 @@
 # 	- $z0: an optional value to replace value of a point (x0,y0)
 #
 #--------------------------------------------------------------------
+# - `::numMV::N x y ?void? ?z?;`
+# 	procedure that returns northern view that is composed of 0, 1 and newline character (Unicode U+00000A)
+#
+# - `::numMV::S x y ?void? ?z?;`
+# 	procedure that returns southern view that is composed of 0, 1 and newline character (Unicode U+00000A)
+#
+# 	- $x and $y: integer coordinates of the current points (x0,y0)
+# 	- $void: an optional value to replace voids in map, which has a default value of 0
+# 	- $z: an optional value to replace value of a point (x,y)
+#
 ##===================================================================
 #
 set auto_noexec 1;
@@ -397,23 +407,44 @@ namespace eval ::numMV {
 		return $2dList;
 	};
 	#
-	#procedure that returns northern view
-	proc ::numMV::N {x0 y0 {void 0} {z0 {}}} {
-		# - $x0 and $y0: integer coordinates of the current points (x0,y0)
+	#procedure that returns northern view that is composed of 0, 1 and newline character (Unicode U+00000A)
+	proc ::numMV::N {x y {void 0} {z {}}} {
+		# - $x and $y: integer coordinates of the current points (x,y)
 		# - $void: an optional value to replace voids in map, which has a default value of 0
 		# - $z: an optional value to replace value of a point (x,y)
 		variable ::numMV::WIDTH;
 		###
-		set x0 [expr {int($x0)}];
-		set y0 [expr {int($y0)}];
+		set x [expr {int($x)}];
+		set y [expr {int($y)}];
 		#
 		#target area is defined with horizontal and vertical differences (dx := $x2-$x1 and dy := $y2-$y1) which are not 0
 		set x1 [expr {int(0)}];
 		set x2 [expr {int($::numMV::WIDTH-1)}];
-		set y1 [expr {int($y0-1)}];
+		set y1 [expr {int($y-1)}];
 		set y2 [expr {int($y1<1?$y1-1:0)}];
 		#--- target area ---
-		set area [::numMV::getAreaNS $x0 $y0 $x1 $x2 $y1 $y2 $void $z0];
+		set area [::numMV::getAreaNS $x $y $x1 $x2 $y1 $y2 $void $z];
+		#
+		return [::numMV::window $area];
+	};
+	#
+	#procedure that returns southern view that is composed of 0, 1 and newline character (Unicode U+00000A)
+	proc ::numMV::S {x y {void 0} {z {}}} {
+		# - $x and $y: integer coordinates of the current points (x,y)
+		# - $void: an optional value to replace voids in map, which has a default value of 0
+		# - $z: an optional value to replace value of a point (x,y)
+		variable ::numMV::WIDTH;variable ::numMV::HEIGHT;
+		###
+		set x [expr {int($x)}];
+		set y [expr {int($y)}];
+		#
+		#target area is defined with horizontal and vertical differences (dx := $x2-$x1 and dy := $y2-$y1) which are not 0
+		set x1 [expr {int(0)}];
+		set x2 [expr {int($::numMV::WIDTH-1)}];
+		set y1 [expr {int($y+1)}];
+		set y2 [expr {int($y1<$::numMV::HEIGHT-1?$::numMV::HEIGHT-1:$y1+1)}];
+		#--- target area ---
+		set area [::numMV::getAreaNS $x $y $x1 $x2 $y1 $y2 $void $z];
 		#
 		return [::numMV::window $area];
 	};
