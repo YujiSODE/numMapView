@@ -11,7 +11,7 @@
 #=== Synopsis ===
 # - `::numMV::load map width;`
 # 	procedure that loads a numerical map and returns information of the given map
-# 	- $map: a numerical list
+# 	- $map: a numerical list or CSV formatted values
 # 	- $width: a positive integer value ($width > 1) that is set as width of map
 #
 # - `::numMV::setResolution res;`
@@ -61,14 +61,24 @@
 #
 #--------------------------------------------------------------------
 # - `::numMV::N x y ?void? ?z?;`
-# 	procedure that returns northern view that is composed of 0, 1 and newline character (Unicode U+00000A)
+# 	procedure that returns the northern view that is composed of 0, 1 and newline character (Unicode U+00000A)
 #
 # - `::numMV::S x y ?void? ?z?;`
-# 	procedure that returns southern view that is composed of 0, 1 and newline character (Unicode U+00000A)
+# 	procedure that returns the southern view that is composed of 0, 1 and newline character (Unicode U+00000A)
+#
+# - `::numMV::E x y ?void? ?z?;`
+# 	procedure that returns the eastern view that is composed of 0, 1 and newline character (Unicode U+00000A)
+#
+# - `::numMV::W x y ?void? ?z?;`
+# 	procedure that returns the western view that is composed of 0, 1 and newline character (Unicode U+00000A)
 #
 # 	- $x and $y: integer coordinates of the current points (x0,y0)
 # 	- $void: an optional value to replace voids in map, which has a default value of 0
 # 	- $z: an optional value to replace value of a point (x,y)
+#
+#--------------------------------------------------------------------
+# - `::numMV::setExpression;`
+# 	procedure that adds four functions which return the northern, southern, eastern or western view into Tcl expressions
 #
 ##===================================================================
 #
@@ -121,13 +131,15 @@ namespace eval ::numMV {
 	#procedure that loads a numerical map and returns information of the given map
 	#$width is not less than 2
 	proc ::numMV::load {map width} {
-		# - $map: a numerical list
+		# - $map: a numerical list or CSV formatted values
 		# - $width: a positive integer value that is set as width of map
 		variable ::numMV::MAP;variable ::numMV::WIDTH;variable ::numMV::HEIGHT;variable ::numMV::INFO;
 		#$width is not less than 2
 		set width [expr {$width<2?2:int($width)}];
 		set ::numMV::WIDTH $width;
 		#
+		#if a given $map is CSV formatted
+		set map [expr {[llength [split $map ,]]<2?$map:[split $map ,]}];
 		set ::numMV::MAP $map;
 		#
 		#--- estimation of map height ---
@@ -407,7 +419,7 @@ namespace eval ::numMV {
 		return $2dList;
 	};
 	#
-	#procedure that returns northern view that is composed of 0, 1 and newline character (Unicode U+00000A)
+	#procedure that returns the northern view that is composed of 0, 1 and newline character (Unicode U+00000A)
 	proc ::numMV::N {x y {void 0} {z {}}} {
 		# - $x and $y: integer coordinates of the current points (x,y)
 		# - $void: an optional value to replace voids in map, which has a default value of 0
@@ -428,7 +440,7 @@ namespace eval ::numMV {
 		return [::numMV::window $area];
 	};
 	#
-	#procedure that returns southern view that is composed of 0, 1 and newline character (Unicode U+00000A)
+	#procedure that returns the southern view that is composed of 0, 1 and newline character (Unicode U+00000A)
 	proc ::numMV::S {x y {void 0} {z {}}} {
 		# - $x and $y: integer coordinates of the current points (x,y)
 		# - $void: an optional value to replace voids in map, which has a default value of 0
@@ -448,4 +460,58 @@ namespace eval ::numMV {
 		#
 		return [::numMV::window $area];
 	};
-#
+	#
+	#procedure that returns the eastern view that is composed of 0, 1 and newline character (Unicode U+00000A)
+	proc ::numMV::E {x y {void 0} {z {}}} {
+		# - $x and $y: integer coordinates of the current points (x,y)
+		# - $void: an optional value to replace voids in map, which has a default value of 0
+		# - $z: an optional value to replace value of a point (x,y)
+		variable ::numMV::WIDTH;variable ::numMV::HEIGHT;
+		###
+		set x [expr {int($x)}];
+		set y [expr {int($y)}];
+		#
+		#target area is defined with horizontal and vertical differences (dx := $x2-$x1 and dy := $y2-$y1) which are not 0
+		set x1 [expr {int($x+1)}];
+		set x2 [expr {int($x1<$::numMV::WIDTH-1?$::numMV::WIDTH-1:$x1+1)}];
+		set y1 [expr {int(0)}];
+		set y2 [expr {int($::numMV::HEIGHT-1)}];
+		#--- target area ---
+		set area [::numMV::getAreaEW $x $y $x1 $x2 $y1 $y2 $void $z];
+		#
+		return [::numMV::window $area];
+	};
+	#
+	#procedure that returns the western view that is composed of 0, 1 and newline character (Unicode U+00000A)
+	proc ::numMV::W {x y {void 0} {z {}}} {
+		# - $x and $y: integer coordinates of the current points (x,y)
+		# - $void: an optional value to replace voids in map, which has a default value of 0
+		# - $z: an optional value to replace value of a point (x,y)
+		variable ::numMV::HEIGHT;
+		###
+		set x [expr {int($x)}];
+		set y [expr {int($y)}];
+		#
+		#target area is defined with horizontal and vertical differences (dx := $x2-$x1 and dy := $y2-$y1) which are not 0
+		set x1 [expr {int($x-1)}];
+		set x2 [expr {int($x1<1?$x1-1:0)}];
+		set y1 [expr {int(0)}];
+		set y2 [expr {int($::numMV::HEIGHT-1)}];
+		#--- target area ---
+		set area [::numMV::getAreaEW $x $y $x1 $x2 $y1 $y2 $void $z];
+		#
+		return [::numMV::window $area];
+	};
+	#
+	#procedure that adds four functions which return the northern, southern, eastern or western view into Tcl expressions
+	proc ::numMV::setExpression {} {
+		#*** <namespace ::tcl::mathfunc> ***
+		#--- ::numMV::N ---
+		proc ::tcl::mathfunc::N {x y {z {}} {void 0}} {return [::numMV::N $x $y $void $z];};
+		#--- ::numMV::S ---
+		proc ::tcl::mathfunc::S {x y {z {}} {void 0}} {return [::numMV::S $x $y $void $z];};
+		#--- ::numMV::E ---
+		proc ::tcl::mathfunc::E {x y {z {}} {void 0}} {return [::numMV::E $x $y $void $z];};
+		#--- ::numMV::W ---
+		proc ::tcl::mathfunc::W {x y {z {}} {void 0}} {return [::numMV::W $x $y $void $z];};
+	};
