@@ -80,6 +80,16 @@
 # - `::numMV::setExpression;`
 # 	procedure that adds four functions which return the northern, southern, eastern or western view into Tcl expressions
 #
+# 	**four functions**
+# 	- `N(x,y?,z?,void??)`: the northern view
+# 	- `S(x,y?,z?,void??)`: the southern view
+# 	- `E(x,y?,z?,void??)`: the eastern view
+# 	- `W(x,y?,z?,void??)`: the western view
+#
+# 		- $x and $y: integer coordinates of the current points (x,y)
+# 		- $z: an optional value to replace value of a point (x,y)
+# 		- $void: an optional value to replace voids in map, which has a default value of 0
+#
 ##===================================================================
 #
 set auto_noexec 1;
