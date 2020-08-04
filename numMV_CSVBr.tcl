@@ -6,7 +6,6 @@
 #	This software is released under the MIT License.
 #	See LICENSE or http://opensource.org/licenses/mit-license.php
 ##===================================================================
-#Numerical map viewer
 #CSV-formatted file output interface for "numMapView.tcl" using Braille Pattern
 #
 #=== Synopsis ===
